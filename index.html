@@ -2239,17 +2239,29 @@ function buildServices() {
     card.id = cat.id;
 
     const imgs = PLACEHOLDER_IMAGES[cat.galleryKey] || [];
+    const visibleImgs = imgs.slice(0, 6);
+    const hiddenImgs = imgs.slice(6);
     const galleryHTML = cat.hasGallery ? `
       <div class="gallery-section">
         <div class="gallery-title">🖼️ Galería de diseños — Elige uno o sube el tuyo</div>
-        <div class="gallery-grid">
-          ${imgs.map((img, i) => `
+        <div class="gallery-grid" id="gallery-grid-${cat.id}">
+          ${visibleImgs.map((img, i) => `
             <div class="gallery-img" data-catid="${cat.id}" data-idx="${i}" onclick="selectGalleryImg('${cat.id}', ${i}, this)">
               <img src="${img}" alt="Diseño ${i+1}" onerror="this.parentElement.style.display='none'">
               <div class="check-overlay">✓</div>
             </div>
           `).join('')}
+          ${hiddenImgs.map((img, i) => `
+            <div class="gallery-img gallery-hidden" data-catid="${cat.id}" data-idx="${i+6}" style="display:none;" onclick="selectGalleryImg('${cat.id}', ${i+6}, this)">
+              <img src="${img}" alt="Diseño ${i+7}" onerror="this.parentElement.style.display='none'">
+              <div class="check-overlay">✓</div>
+            </div>
+          `).join('')}
         </div>
+        ${hiddenImgs.length > 0 ? `
+        <div style="text-align:center; margin:10px 0 4px;">
+          <button id="vermás-${cat.id}" onclick="toggleVerMas('${cat.id}')" style="background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#fff;border:none;padding:8px 24px;border-radius:50px;font-size:0.82rem;cursor:pointer;font-family:inherit;font-weight:600;box-shadow:0 2px 10px rgba(224,122,153,0.3);">Ver más fotos ▼</button>
+        </div>` : ''}
         <label class="custom-upload-area" onclick="document.getElementById('upload-${cat.id}').click()">
           <div class="icon">📸</div>
           <p>¿Tienes tu propio diseño? <strong>Súbelo aquí</strong></p>
@@ -2302,7 +2314,49 @@ function showBraidToast() {
 // ─── CARD TOGGLE ───
 function toggleCard(catId) {
   const card = document.getElementById(catId);
+  const isOpening = !card.classList.contains('active');
+
+  // Collapse all other cards and reset their hidden photos
+  document.querySelectorAll('.service-card.active').forEach(c => {
+    if (c.id !== catId) {
+      c.classList.remove('active');
+      const hiddenImgs = c.querySelectorAll('.gallery-hidden');
+      hiddenImgs.forEach(img => img.style.display = 'none');
+      const btn = document.getElementById(`vermás-${c.id}`);
+      if (btn) btn.textContent = 'Ver más fotos ▼';
+    }
+  });
+
   card.classList.toggle('active');
+
+  // If opening, scroll a bit above this card
+  if (isOpening) {
+    setTimeout(() => {
+      const top = card.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }, 50);
+  }
+}
+
+function toggleVerMas(catId) {
+  const grid = document.getElementById(`gallery-grid-${catId}`);
+  const hiddenImgs = grid.querySelectorAll('.gallery-hidden');
+  const btn = document.getElementById(`vermás-${catId}`);
+  const expanded = btn.textContent.includes('▲');
+
+  hiddenImgs.forEach(img => {
+    img.style.display = expanded ? 'none' : 'block';
+  });
+  btn.textContent = expanded ? 'Ver más fotos ▼' : 'Ver menos ▲';
+
+  // If collapsing, scroll back to top of this card
+  if (expanded) {
+    const card = document.getElementById(catId);
+    setTimeout(() => {
+      const top = card.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }, 50);
+  }
 }
 
 // ─── ITEM SELECTION ───
@@ -2829,5 +2883,36 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('clientDate').min = today;
 });
 </script>
+<!-- WhatsApp Floating Button -->
+<a href="https://wa.me/18294653113?text=Hola!%20Te%20escribo%20desde%20la%20web%2C%20%C2%BFest%C3%A1s%20disponible%3F%20%F0%9F%92%85" 
+   target="_blank" rel="noopener"
+   style="
+     position: fixed;
+     bottom: 24px;
+     right: 20px;
+     z-index: 9999;
+     width: 58px;
+     height: 58px;
+     background: #25D366;
+     border-radius: 50%;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     box-shadow: 0 4px 20px rgba(37,211,102,0.5);
+     animation: waPulse 2s ease-in-out infinite;
+     text-decoration: none;
+   "
+   title="Escríbenos por WhatsApp">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="white">
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 2.822.736 5.472 2.027 7.773L0 32l8.437-2.01A15.93 15.93 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.333a13.27 13.27 0 01-6.77-1.853l-.485-.29-5.01 1.194 1.234-4.886-.317-.502A13.267 13.267 0 012.667 16C2.667 8.636 8.636 2.667 16 2.667S29.333 8.636 29.333 16 23.364 29.333 16 29.333zm7.27-9.862c-.398-.199-2.354-1.162-2.719-1.295-.365-.133-.63-.199-.896.199-.265.398-1.029 1.295-1.261 1.56-.232.266-.465.299-.863.1-.398-.2-1.681-.62-3.203-1.977-1.184-1.057-1.983-2.362-2.215-2.76-.232-.398-.025-.613.174-.811.179-.178.398-.465.598-.697.199-.232.265-.398.398-.664.133-.265.066-.497-.033-.697-.1-.199-.896-2.16-1.228-2.957-.323-.776-.651-.671-.896-.683l-.764-.013c-.265 0-.696.1-1.061.497-.365.398-1.394 1.362-1.394 3.322s1.427 3.854 1.626 4.12c.199.265 2.808 4.286 6.803 6.013.951.41 1.693.655 2.271.839.954.304 1.823.261 2.51.158.766-.114 2.354-.962 2.686-1.891.332-.929.332-1.726.232-1.891-.099-.166-.364-.266-.763-.465z"/>
+  </svg>
+</a>
+<style>
+@keyframes waPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(37,211,102,0.5); transform: scale(1); }
+  50% { box-shadow: 0 4px 30px rgba(37,211,102,0.8); transform: scale(1.07); }
+}
+</style>
+
 </body>
 </html>
